@@ -17,10 +17,10 @@ const organizeData = () => {
   const rightList: number[] = [];
   
   data.forEach(element => {
-    leftList.push(Number(element.split(' ')[0]));
-    rightList.push(Number(element.split(' ')[3]));
+    leftList.push(Number(element.split('   ')[0]));
+    rightList.push(Number(element.split('   ')[1]));
   });
-  
+
   cachedData = {
     leftList: leftList.sort(),
     rightList: rightList.sort()};
