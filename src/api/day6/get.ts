@@ -72,11 +72,11 @@ const repairIncorrectOrder = (roles: string[][], pagesOrder: string[]) => {
   return pagesOrder;
 };
 
-export const getday5P1Result = (_req: Request, res: Response) => {
+export const getday6P1Result = (_req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(count(organizeRoles(getData()), organizePages(getData())));
 };
 
-export const getday5P2Result = (_req: Request, res: Response) => {
+export const getday6P2Result = (_req: Request, res: Response) => {
   res
     .status(StatusCodes.OK)
     .json(countIncorrectOrder(organizeRoles(getData()), organizePages(getData())));
