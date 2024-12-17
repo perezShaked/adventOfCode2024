@@ -3,81 +3,97 @@ import { Request, Response } from 'express';
 import fs from 'node:fs';
 
 const getData = () => {
-  return fs.readFileSync('./src/data/day5data.txt', 'utf8');
+  return fs.readFileSync('./src/data/day6data.txt', 'utf8');
 };
 
-const organizeRoles = (data: string) => {
-  const regexRoles = /\d+\|\d+/g;
-  const roles = data.match(regexRoles) || [];
-  return roles.map((element) => {
-    return element.split('|');
-  });
+const organizeMap = (data: string) => {
+  const rows = data.split('\r\n');
+  return rows;
 };
 
-const organizePages = (data: string) => {
-  const regexPages = /(\d+\,)+\d+/g;
-  const pagesOrder = data.match(regexPages) || [];
-  return pagesOrder.map((element) => element.split(','));
+const mapAfterGuardWalk = (map: string[], counter: number) => {
+  const guardPosition = getGuardPosition(map);
+  if (isGuardAtTheEdge(map, guardPosition)) {
+    return map;
+  }
+  updateNextStep(map, getGuardPosition(map));
+  return mapAfterGuardWalk(map, counter + 1);
 };
 
-const checkPagesOrder = (roles: string[][], pagesOrder: string[]) => {
+const isGuardAtTheEdge = (map: string[], gardPosition: [number, number]) => {
+  const [row, col] = gardPosition;
+  const gardDirection = map[row][col];
   if (
-    roles.some((element) => {
-      const [first, secund] = element;
-      const indexOfFirst = pagesOrder.indexOf(first);
-      const indexOfSecund = pagesOrder.indexOf(secund);
-      if (indexOfFirst !== -1 && indexOfSecund !== -1) return indexOfFirst > indexOfSecund;
-    })
-  )
-    return false;
-  return true;
+    (gardDirection === Directions.UP && gardPosition[0] === 0) ||
+    (gardDirection === Directions.RIGHT && gardPosition[1] === map[0].length - 1) ||
+    (gardDirection === Directions.LEFT && gardPosition[1] === 0) ||
+    (gardDirection === Directions.DOWN && gardPosition[0] === map.length - 1)
+  ) {
+    return true;
+  }
+  return false;
 };
 
-const getMiddleNumber = (pagesOrder: string[]) => {
-  return Number(pagesOrder[(pagesOrder.length - 1) / 2]);
-};
-
-const count = (roles: string[][], pagesOrders: string[][]) => {
-  return pagesOrders.reduce((total, element) => {
-    if (checkPagesOrder(roles, element)) {
-      return (total += getMiddleNumber(element));
-    }
-    return total;
-  }, 0);
-};
-
-const countIncorrectOrder = (roles: string[][], pagesOrders: string[][]) => {
-  return pagesOrders.reduce((total, element) => {
-    if (!checkPagesOrder(roles, element)) {
-      return (total += getMiddleNumber(repairIncorrectOrder(roles, element)));
-    }
-    return total;
-  }, 0);
-};
-
-const repairIncorrectOrder = (roles: string[][], pagesOrder: string[]) => {
-  roles.forEach((element) => {
-    const [first, secund] = element;
-    const indexOfFirst = pagesOrder.indexOf(first);
-    const indexOfSecund = pagesOrder.indexOf(secund);
-    if (indexOfFirst !== -1 && indexOfSecund !== -1) {
-      if (indexOfFirst > indexOfSecund) {
-        const temp = pagesOrder[indexOfFirst];
-        pagesOrder[indexOfFirst] = pagesOrder[indexOfSecund];
-        pagesOrder[indexOfSecund] = temp;
-      }
+const getGuardPosition = (map: string[]) => {
+  const guardRegex = /\^|\>|\<|v/;
+  let position: [number, number] = [0, 0];
+  map.forEach((element, index) => {
+    const match = element.match(guardRegex);
+    if (match?.index) {
+      position = [index, match.index];
     }
   });
-  if (!checkPagesOrder(roles, pagesOrder)) repairIncorrectOrder(roles, pagesOrder);
-  return pagesOrder;
+  return position;
+};
+
+const updateNextStep = (map: string[], gardPosition: [number, number]) => {
+  const [row, col] = gardPosition;
+  const gardDirection = map[row][col];
+  const [nextRow, nextCol] = nextStepPosition(map, gardPosition);
+  if (map[nextRow][nextCol] === '.' || map[nextRow][nextCol] === 'X') {
+    map[row] = map[row].replace(gardDirection, 'X');
+    map[nextRow] =
+      map[nextRow].substring(0, nextCol) + gardDirection + map[nextRow].substring(nextCol + 1);
+  } else if (map[nextRow][nextCol] === '#') {
+    map[row] = map[row].replace(gardDirection, rotateGuard(gardDirection));
+  }
+  return map;
+};
+
+enum Directions {
+  UP = '^',
+  RIGHT = '>',
+  LEFT = '<',
+  DOWN = 'v',
+}
+
+const rotateGuard = (gardDirection: string) => {
+  if (gardDirection === Directions.UP) return '>';
+  if (gardDirection === Directions.RIGHT) return 'v';
+  if (gardDirection === Directions.LEFT) return '^';
+  return '<';
+};
+
+const nextStepPosition = (map: string[], gardPosition: [number, number]) => {
+  const [row, col] = gardPosition;
+  const gardDirection = map[row][col];
+  if (gardDirection === Directions.UP) return [row - 1, col];
+  if (gardDirection === Directions.RIGHT) return [row, col + 1];
+  if (gardDirection === Directions.LEFT) return [row, col - 1];
+  if (gardDirection === Directions.DOWN) return [row + 1, col];
+  return [-1, -1];
+};
+
+const countX = (map: string[]) => {
+  return map.reduce((total, element) => {
+    return total + (element.match(/X/g)?.length || 0);
+  }, 1);
 };
 
 export const getday6P1Result = (_req: Request, res: Response) => {
-  res.status(StatusCodes.OK).json(count(organizeRoles(getData()), organizePages(getData())));
+  res.status(StatusCodes.OK).json(countX(mapAfterGuardWalk(organizeMap(getData()), 0)));
 };
 
 export const getday6P2Result = (_req: Request, res: Response) => {
-  res
-    .status(StatusCodes.OK)
-    .json(countIncorrectOrder(organizeRoles(getData()), organizePages(getData())));
+  res.status(StatusCodes.OK).json();
 };
